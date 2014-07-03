@@ -1,5 +1,3 @@
-__author__ = 'folgert'
-
 import unittest
 from align import align_sequences
 
