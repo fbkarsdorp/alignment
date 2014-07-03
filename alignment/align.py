@@ -179,6 +179,12 @@ class Alignment(object):
         self.alignment = pd.DataFrame(sequences)
         self.n_samples, self.n_features = self.alignment.shape
 
+    def profile(self, plot=False):
+        profile = self.alignment.apply(lambda x: x.value_counts() / x.count()).fillna(0.0)
+        if plot:
+            profile.T.plot(kind='bar')
+        return profile
+
     def score(self, scoring_fn=None, gap_weight=1.0):
         """
         Return the average sum of pairs score over all columns.
