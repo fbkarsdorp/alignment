@@ -12,3 +12,4 @@ align_a, align_b, distance = align_sequences(sequence_a, sequence_b)
 alignment = Alignment.from_sequences(align_a, align_b)
 # pretty print the alignment
 print alignment
+

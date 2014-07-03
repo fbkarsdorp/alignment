@@ -15,3 +15,6 @@ def iflatten(iterable):
 
 def flatten(iterable):
     return list(iflatten(iterable))
+
+def merge(*sequences):
+    return map(flatten, zip(*sequences))

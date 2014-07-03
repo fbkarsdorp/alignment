@@ -14,3 +14,4 @@ print alignment
 
 # compute the alignment score
 print alignment.score()
+
