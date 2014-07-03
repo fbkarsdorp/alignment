@@ -26,23 +26,20 @@ def compute_matrix(sequence_a, sequence_b, scorer, gap_penalty=1, scale=0.5):
     len1, len2 = len(sequence_a), len(sequence_b)
     pointer = np.zeros((len1 + 1, len2 + 1), dtype='i')
     matrix = np.zeros((len1 + 1, len2 + 1), dtype='f')
+    length = np.zeros((len1 + 1, len2 + 1), dtype='f')
     pointer[0, 0] = NONE
     pointer[0, 1:] = LEFT
     pointer[1:, 0] = UP
     for i in range(1, len1 + 1):
         matrix[i, 0] = matrix[i - 1, 0] + gap_penalty * scale
+        length[i, 0] = length[i - 1, 0] + gap_penalty * scale
     for j in range(1, len2 + 1):
         matrix[0, j] = matrix[0, j - 1] + gap_penalty * scale
+        length[0, j] = length[0, j - 1] + gap_penalty * scale
     for i in range(1, len1 + 1):
         for j in range(1, len2 + 1):
-            if pointer[i - 1, j] == UP:
-                gap_a = matrix[i - 1, j] + gap_penalty * scale
-            else:
-                gap_a = matrix[i - 1, j] + gap_penalty
-            if pointer[i, j - 1] == LEFT:
-                gap_b = matrix[i, j - 1] + gap_penalty * scale
-            else:
-                gap_b = matrix[i, j - 1] + gap_penalty
+            gap_a = matrix[i - 1, j] + (gap_penalty * scale if pointer[i - 1, j] == UP else gap_penalty)
+            gap_b = matrix[i, j - 1] + (gap_penalty * scale if pointer[i, j - 1] == LEFT else gap_penalty)
             match = matrix[i - 1, j - 1] + scorer[i - 1, j - 1]
             if gap_a < match and gap_a < gap_b:
                 matrix[i, j] = gap_a
@@ -53,7 +50,13 @@ def compute_matrix(sequence_a, sequence_b, scorer, gap_penalty=1, scale=0.5):
             else:
                 matrix[i, j] = gap_b
                 pointer[i, j] = LEFT
-    distance = matrix[len1, len2] / (max(len1, len2) + gap_penalty * scale)
+            p = pointer[i, j]
+            ldelete = length[i-1, j] + (gap_penalty * scale if p == UP else 0)
+            linsert = length[i, j-1] + (gap_penalty * scale if p == LEFT else 0)
+            lreplace = length[i-1, j-1] + (scorer[i-1, j-1] if p == DIAG else 0)
+            length[i, j] = max(ldelete, linsert, lreplace)
+
+    distance = matrix[len1, len2] / length[len1, len2]
     return matrix, pointer, distance
 
 
@@ -93,7 +96,7 @@ def align(sequence_a, sequence_b, scores, gap_penalty=1, scale=0.5):
     return align1, align2, distance
 
 
-def align_sequences(sequence_a, sequence_b, scoring_fn=None, gap_penalty=1, scale=0.5):
+def align_sequences(sequence_a, sequence_b, scoring_fn=None, gap_penalty=1, scale=1.0):
     """
     Align two sequences using the Needleman-Wunsch algorithm.
 
@@ -111,7 +114,7 @@ def align_sequences(sequence_a, sequence_b, scoring_fn=None, gap_penalty=1, scal
     return align(sequence_a, sequence_b, scores, gap_penalty, scale)
 
 
-def _align_profiles(sequence_a, sequence_b, scoring_fn=None, gap_penalty=1, scale=0.5, gap_weight=1.0):
+def _align_profiles(sequence_a, sequence_b, scoring_fn=None, gap_penalty=1, scale=1.0, gap_weight=1.0):
     scores = {}
     for i in range(len(sequence_a)):
         for j in range(len(sequence_b)):

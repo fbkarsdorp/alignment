@@ -40,7 +40,7 @@ class Alignment(object):
             scores.append(score / count)
         return sum(scores) / len(scores)
 
-    def plot(self):
+    def plot(self, filepath=None):
         """
         Plot the alignment using matplotlib and seaborn.
         """
@@ -59,6 +59,9 @@ class Alignment(object):
         ax.set_xticklabels(())
         ax.set_ylim(-1, self.n_samples)
         ax.set_xlim(-1, self.n_features)
+        if filepath:
+            sb.plt.savefig(filepath + ".pdf")
+            sb.plt.close(fig)
 
     def __repr__(self):
         return '<Alignment of %d sequences>' % self.n_samples
