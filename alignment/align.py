@@ -5,7 +5,7 @@ import numpy as np
 from HACluster import Clusterer, single_link
 
 from alignment import Alignment
-from utils import flatten
+from utils import flatten, merge
 
 
 
@@ -170,9 +170,8 @@ def multi_sequence_alignment(sequences, scoring_fn=None, linkage=single_link):
             else:
                 sequence_a, sequence_b = alignments[node1], alignments[node2]
             align1, align2, _ = _align_profiles(sequence_a, sequence_b, scoring_fn)
-        alignments[cluster_id] = map(flatten, zip(align1, align2))
+        alignments[cluster_id] = merge(align1, align2)
     return Alignment(zip(*map(flatten, alignments[max(alignments)])))
-
 
 if __name__ == '__main__':
     sequences = ['the quick fox jumps over the dog'.split(),

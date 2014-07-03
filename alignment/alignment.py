@@ -2,12 +2,18 @@ from itertools import combinations
 
 import pandas as pd
 
+from utils import merge
+
 
 class Alignment(object):
     def __init__(self, sequences):
         assert all(len(sequence) == len(sequences[0]) for sequence in sequences[1:])
         self.alignment = pd.DataFrame(sequences)
         self.n_samples, self.n_features = self.alignment.shape
+
+    @classmethod
+    def from_sequences(cls, *sequences):
+        return Alignment(merge(sequences))
 
     def profile(self, plot=False):
         profile = self.alignment.apply(lambda x: x.value_counts() / x.count()).fillna(0.0)

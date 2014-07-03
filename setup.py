@@ -4,7 +4,7 @@ from distutils.core import setup
 setup(
     name='sequence-alignment',
     version='0.1',
-    packages=[''],
+    packages=['alignment'],
     url='fbkarsdorp.github.io/sequence-alignment',
     license='',
     author='Folgert Karsdorp',
