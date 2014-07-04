@@ -8,7 +8,6 @@ from alignment import Alignment
 from utils import flatten, merge
 
 
-
 NONE, LEFT, UP, DIAG = 0, 1, 2, 3
 
 
@@ -41,21 +40,21 @@ def compute_matrix(sequence_a, sequence_b, scorer, gap_penalty=1, scale=0.5):
             gap_a = matrix[i - 1, j] + (gap_penalty * scale if pointer[i - 1, j] == UP else gap_penalty)
             gap_b = matrix[i, j - 1] + (gap_penalty * scale if pointer[i, j - 1] == LEFT else gap_penalty)
             match = matrix[i - 1, j - 1] + scorer[i - 1, j - 1]
-            if gap_a < match and gap_a < gap_b:
+            if gap_a < match and gap_a <= gap_b:
                 matrix[i, j] = gap_a
                 pointer[i, j] = UP
-            elif match < gap_b:
+            elif match <= gap_b:
                 matrix[i, j] = match
                 pointer[i, j] = DIAG
             else:
                 matrix[i, j] = gap_b
                 pointer[i, j] = LEFT
             p = pointer[i, j]
-            ldelete = length[i-1, j] + (gap_penalty * scale if p == UP else 0)
-            linsert = length[i, j-1] + (gap_penalty * scale if p == LEFT else 0)
-            lreplace = length[i-1, j-1] + (scorer[i-1, j-1] if p == DIAG else 0)
-            length[i, j] = max(ldelete, linsert, lreplace)
-
+            l_gap_a = length[i - 1, j] + (gap_penalty * scale if p == UP else 0)
+            l_gap_b = length[i, j - 1] + (gap_penalty * scale if p == LEFT else 0)
+            l_match = length[i - 1, j - 1] + (scorer[i - 1, j - 1] if p == DIAG else 0)
+            length[i, j] = max(l_gap_a, l_gap_b, l_match)
+    # normalize the distance
     distance = matrix[len1, len2] / length[len1, len2]
     return matrix, pointer, distance
 
@@ -114,7 +113,8 @@ def align_sequences(sequence_a, sequence_b, scoring_fn=None, gap_penalty=1, scal
     return align(sequence_a, sequence_b, scores, gap_penalty, scale)
 
 
-def _align_profiles(sequence_a, sequence_b, scoring_fn=None, gap_penalty=1, scale=1.0, gap_weight=1.0):
+def _align_profiles(sequence_a, sequence_b, scoring_fn=None,
+                    gap_penalty=1, scale=1.0, gap_weight=0.5):
     scores = {}
     for i in range(len(sequence_a)):
         for j in range(len(sequence_b)):
@@ -125,7 +125,8 @@ def _align_profiles(sequence_a, sequence_b, scoring_fn=None, gap_penalty=1, scal
                     mi = sequence_a[i][k]
                     mj = sequence_b[j][l]
                     if mi == '_' or mj == '_':
-                        count += gap_weight
+                        dist += gap_weight # TODO check if this is correct
+                        count += 1
                     else:
                         dist += scoring_fn(mi, mj)
                         count += 1.0
@@ -143,7 +144,8 @@ def pairwise_distances(sequences, fn):
     return distances
 
 
-def multi_sequence_alignment(sequences, scoring_fn=None, linkage=single_link):
+def multi_sequence_alignment(sequences, scoring_fn=None, linkage=single_link,
+                             gap_penalty=1, scale=1.0, gap_weight=0.5, verbosity=0):
     """
     Perform progressive multiple sequence alignment.
 
@@ -155,16 +157,20 @@ def multi_sequence_alignment(sequences, scoring_fn=None, linkage=single_link):
     if scoring_fn is None:
         scoring_fn = lambda a, b: 0.0 if a == b else 2.0
     # compute all pairwise distances
-    matrix = pairwise_distances(sequences, partial(align_sequences, scoring_fn=scoring_fn))
+    matrix = pairwise_distances(sequences, partial(align_sequences, scoring_fn=scoring_fn,
+                                                   gap_penalty=gap_penalty, scale=scale))
     # compute the guiding tree to do the progressive alignment
     clusterer = Clusterer(matrix, linkage=linkage)
     clusterer.cluster()
+    if verbosity > 0:
+        print list(clusterer.dendrogram())
     # perform the alignment by iterating through the clusters
     alignments = {}
     n_seqs = len(sequences)
     for cluster_id, node1, node2, _, _ in clusterer.dendrogram():
         if node1 < n_seqs and node2 < n_seqs:
-            align1, align2, _ = align_sequences(sequences[node1], sequences[node2], scoring_fn)
+            align1, align2, _ = align_sequences(sequences[node1], sequences[node2],
+                                                scoring_fn, gap_penalty, scale)
         else:
             if node1 < n_seqs:
                 sequence_a, sequence_b = [[elt] for elt in sequences[node1]], alignments[node2]
@@ -172,7 +178,7 @@ def multi_sequence_alignment(sequences, scoring_fn=None, linkage=single_link):
                 sequence_a, sequence_b = alignments[node1], [[elt] for elt in sequences[node2]]
             else:
                 sequence_a, sequence_b = alignments[node1], alignments[node2]
-            align1, align2, _ = _align_profiles(sequence_a, sequence_b, scoring_fn)
+            align1, align2, _ = _align_profiles(sequence_a, sequence_b, scoring_fn, gap_penalty, scale, gap_weight)
         alignments[cluster_id] = merge(align1, align2)
     return Alignment(zip(*map(flatten, alignments[max(alignments)])))
 
