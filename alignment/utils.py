@@ -7,7 +7,7 @@ def iflatten(iterable):
     :return: generator
     """
     for elt in iterable:
-        if isinstance(elt, collections.Iterable) and not isinstance(elt, basestring):
+        if isinstance(elt, collections.Iterable) and not isinstance(elt, str):
             for sub in flatten(elt):
                 yield sub
         else:
@@ -17,4 +17,4 @@ def flatten(iterable):
     return list(iflatten(iterable))
 
 def merge(*sequences):
-    return map(flatten, zip(*sequences))
+    return list(map(flatten, zip(*sequences)))

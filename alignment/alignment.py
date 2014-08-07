@@ -1,6 +1,7 @@
+from itertools import combinations
 import pandas as pd
 
-from utils import merge
+from .utils import merge
 
 
 class Alignment(object):
@@ -19,7 +20,7 @@ class Alignment(object):
             profile.T.plot(kind='bar')
         return profile
 
-    def score(self, scoring_fn=None, gap_weight=1.0, gap_penalty=1, per_column=False):
+    def score(self, scoring_fn=None, gap_weight=1.0, gap_penalty=1.0, per_column=False):
         """
         Return the average sum of pairs score over all columns.
         """
@@ -29,15 +30,17 @@ class Alignment(object):
         for column in self.alignment.columns:
             score = 0.0
             count = 0.0
-            for val_a in self.alignment[column].values:
-                for val_b in self.alignment[column].values:
-                    if val_a == '_' and val_b == '_':
-                        score += gap_weight
-                    if val_a == '_' or val_b == '_':
-                        score += gap_penalty
-                    else:
-                        score += 0 if scoring_fn(val_a, val_b) < 1 else 1
-                    count += 1.0
+            for i in range(self.n_samples):
+                for j in range(self.n_samples):
+                    if i != j:
+                        val_a, val_b = self.alignment[column].values[i], self.alignment[column].values[j]
+                        if val_a == '_' and val_b == '_':
+                            score += 0.0
+                        elif val_a == '_' or val_b == '_':
+                            score += gap_weight
+                        else:
+                            score += 0.0 if scoring_fn(val_a, val_b) < 1 else 1.0
+                        count += 1.0
             scores.append(score / count)
         return scores if per_column else sum(scores) / len(scores)
 

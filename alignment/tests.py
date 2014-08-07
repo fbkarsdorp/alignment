@@ -1,5 +1,5 @@
 import unittest
-from align import align_sequences
+from .align import align_sequences
 
 
 class TestSequenceAlignment(unittest.TestCase):

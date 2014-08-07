@@ -4,14 +4,14 @@ import numpy as np
 
 from HACluster import Clusterer, single_link
 
-from alignment import Alignment
-from utils import flatten, merge
+from .alignment import Alignment
+from .utils import flatten, merge
 
 
 NONE, LEFT, UP, DIAG = 0, 1, 2, 3
 
 
-def compute_matrix(sequence_a, sequence_b, scorer, gap_penalty=1, scale=0.5):
+def needle_wunsch(sequence_a, sequence_b, scorer, gap_penalty=1, scale=1.0):
     """
     :param sequence_a: any iterable with a fixed order.
     :param sequence_b: any iterable with a fixed order.
@@ -88,8 +88,8 @@ def backtrace(pointer, sequence_a, sequence_b):
     return align1[::-1], align2[::-1]
 
 
-def align(sequence_a, sequence_b, scores, gap_penalty=1, scale=0.5):
-    matrix, pointer, distance = compute_matrix(
+def align(sequence_a, sequence_b, scores, gap_penalty=1, scale=1.0):
+    matrix, pointer, distance = needle_wunsch(
         sequence_a, sequence_b, scores, gap_penalty, scale)
     align1, align2 = backtrace(pointer, sequence_a, sequence_b)
     return align1, align2, distance
@@ -125,11 +125,10 @@ def _align_profiles(sequence_a, sequence_b, scoring_fn=None,
                     mi = sequence_a[i][k]
                     mj = sequence_b[j][l]
                     if mi == '_' or mj == '_':
-                        dist += gap_weight # TODO check if this is correct
-                        count += 1
+                        dist += gap_weight
                     else:
-                        dist += scoring_fn(mi, mj)
-                        count += 1.0
+                        dist += 0.0 if scoring_fn(mi, mj) < 1 else 1.0
+                    count += 1.0
                 scores[i, j] = dist / count
     return align(sequence_a, sequence_b, scores, gap_penalty, scale)
 
@@ -145,7 +144,7 @@ def pairwise_distances(sequences, fn):
 
 
 def multi_sequence_alignment(sequences, scoring_fn=None, linkage=single_link,
-                             gap_penalty=1, scale=1.0, gap_weight=0.5, verbosity=0):
+                             gap_penalty=1, scale=1.0, gap_weight=1.0, verbosity=0):
     """
     Perform progressive multiple sequence alignment.
 
@@ -163,7 +162,7 @@ def multi_sequence_alignment(sequences, scoring_fn=None, linkage=single_link,
     clusterer = Clusterer(matrix, linkage=linkage)
     clusterer.cluster()
     if verbosity > 0:
-        print list(clusterer.dendrogram())
+        print(list(clusterer.dendrogram()))
     # perform the alignment by iterating through the clusters
     alignments = {}
     n_seqs = len(sequences)
@@ -180,12 +179,12 @@ def multi_sequence_alignment(sequences, scoring_fn=None, linkage=single_link,
                 sequence_a, sequence_b = alignments[node1], alignments[node2]
             align1, align2, _ = _align_profiles(sequence_a, sequence_b, scoring_fn, gap_penalty, scale, gap_weight)
         alignments[cluster_id] = merge(align1, align2)
-    return Alignment(zip(*map(flatten, alignments[max(alignments)])))
+    return Alignment(list(zip(*map(flatten, alignments[max(alignments)]))))
 
 if __name__ == '__main__':
     sequences = ['the quick fox jumps over the dog'.split(),
                  'the brown fox jumps over the lazy dog'.split(),
                  'the clever fox jumps over the lazy crow'.split()]
     alignment = multi_sequence_alignment(sequences)
-    print alignment
-    print alignment.score()
+    print(alignment)
+    print(alignment.score())
