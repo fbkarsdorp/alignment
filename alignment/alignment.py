@@ -44,6 +44,27 @@ class Alignment(object):
             scores.append(score / count)
         return scores if per_column else sum(scores) / len(scores)
 
+    def _row_based_score(self, scoring_fn=None, gap_weight=1.0, gap_penalty=1.0):
+        if scoring_fn is None:
+            scoring_fn = lambda a, b: 0.0 if a == b else 2.0
+        scores = []
+        for i, row in self.alignment.iterrows():
+            row_score = []
+            for column in self.alignment.columns:
+                if row[column] != '_':
+                    score, count = 0, 0
+                    for j in range(self.n_samples):
+                        if j != i:
+                            val_a, val_b = self.alignment.ix[i, column], self.alignment.ix[j, column]
+                            if val_a == '_' or val_b == '_':
+                                score += gap_weight
+                            else:
+                                score += 0.0 if scoring_fn(val_a, val_b) < 1 else 1.0
+                            count += 1.0
+                    row_score.append(score / count)
+            scores.extend([(pos / len(row_score), score) for pos, score in enumerate(row_score, 1)])
+        return scores
+
     def plot(self, filepath=None):
         """
         Plot the alignment using matplotlib and seaborn.
