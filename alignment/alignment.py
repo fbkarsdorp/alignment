@@ -1,7 +1,13 @@
 from itertools import combinations
+
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
-from .utils import merge
+from utils import merge
+
+
+plt.style.use('seaborn')
 
 
 class Alignment(object):
@@ -67,14 +73,14 @@ class Alignment(object):
 
     def plot(self, filepath=None):
         """
-        Plot the alignment using matplotlib and seaborn.
+        Plot the alignment using matplotlib.
         """
-        import seaborn as sb
         # assign to each unique value in the alignment as unique color
         unique_values = list(set(value for row in self.alignment.values for value in row))
-        colors = dict(zip(unique_values, sb.color_palette("husl", len(unique_values))))
+        colors = iter(plt.cm.get_cmap('Set3')(np.linspace(0, 1, len(unique_values))))
+        colors = dict(zip(unique_values, colors))
         # plot all the alignments
-        fig, ax = sb.plt.subplots(figsize=(self.n_features * 1.5, self.n_samples))
+        fig, ax = plt.subplots(figsize=(self.n_features * 1.5, self.n_samples))
         for i, row in self.alignment.iterrows():
             for j, value in enumerate(row.values):
                 ax.annotate(value, xy=(j, self.n_samples - i - 1), color=colors[value])
@@ -85,11 +91,11 @@ class Alignment(object):
         ax.set_ylim(-1, self.n_samples)
         ax.set_xlim(-1, self.n_features)
         if filepath:
-            sb.plt.savefig(filepath + ".pdf")
-            sb.plt.close(fig)
+            plt.savefig(filepath + (".pdf" if not filepath.endswith('.pdf') else ''))
+            plt.close(fig)
 
     def __repr__(self):
-        return '<Alignment of %d sequences>' % self.n_samples
+        return f'<Alignment of {self.n_samples} sequences>'
 
     def __str__(self):
         return self.alignment.to_string()

@@ -1,11 +1,11 @@
 from functools import partial
 
 import numpy as np
+from scipy.cluster.hierarchy import linkage, dendrogram
+from scipy.spatial.distance import squareform
 
-from HACluster import Clusterer, single_link
-
-from .alignment import Alignment
-from .utils import flatten, merge
+from alignment import Alignment
+from utils import flatten, merge
 
 
 NONE, LEFT, UP, DIAG = 0, 1, 2, 3
@@ -143,7 +143,7 @@ def pairwise_distances(sequences, fn):
     return distances
 
 
-def multi_sequence_alignment(sequences, scoring_fn=None, linkage=single_link,
+def multi_sequence_alignment(sequences, scoring_fn=None, linking='single',
                              gap_penalty=1, scale=1.0, gap_weight=1.0, verbosity=0):
     """
     Perform progressive multiple sequence alignment.
@@ -159,14 +159,12 @@ def multi_sequence_alignment(sequences, scoring_fn=None, linkage=single_link,
     matrix = pairwise_distances(sequences, partial(align_sequences, scoring_fn=scoring_fn,
                                                    gap_penalty=gap_penalty, scale=scale))
     # compute the guiding tree to do the progressive alignment
-    clusterer = Clusterer(matrix, linkage=linkage)
-    clusterer.cluster()
-    if verbosity > 0:
-        print(list(clusterer.dendrogram()))
+    Z = linkage(squareform(matrix), method='single')
     # perform the alignment by iterating through the clusters
     alignments = {}
     n_seqs = len(sequences)
-    for cluster_id, node1, node2, _, _ in clusterer.dendrogram():
+    for cluster_id, (node1, node2, _, _) in enumerate(Z, n_seqs):
+        node1, node2 = int(node1), int(node2)
         if node1 < n_seqs and node2 < n_seqs:
             align1, align2, _ = align_sequences(sequences[node1], sequences[node2],
                                                 scoring_fn, gap_penalty, scale)
@@ -185,6 +183,7 @@ if __name__ == '__main__':
     sequences = ['the quick fox jumps over the dog'.split(),
                  'the brown fox jumps over the lazy dog'.split(),
                  'the clever fox jumps over the lazy crow'.split()]
-    alignment = multi_sequence_alignment(sequences)
+    alignment = multi_sequence_alignment(sequences, gap_weight=0, gap_penalty=6)
     print(alignment)
     print(alignment.score())
+    alignment.plot("testje.pdf")
