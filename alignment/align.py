@@ -4,8 +4,8 @@ import numpy as np
 from scipy.cluster.hierarchy import linkage, dendrogram
 from scipy.spatial.distance import squareform
 
-from alignment import Alignment
-from utils import flatten, merge
+from .alignment import Alignment
+from .utils import flatten, merge
 
 
 NONE, LEFT, UP, DIAG = 0, 1, 2, 3
