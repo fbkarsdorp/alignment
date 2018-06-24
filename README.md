@@ -11,6 +11,7 @@ sequences = ['the quick fox jumps over the dog'.split(),
 alignment = multi_sequence_alignment(sequences)
 print(alignment)
 print(alignment.score())
+
      0       1    2      3     4    5     6     7
 0  the  clever  fox  jumps  over  the  lazy  crow
 1  the   quick  fox  jumps  over  the     _   dog
