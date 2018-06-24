@@ -183,7 +183,7 @@ if __name__ == '__main__':
     sequences = ['the quick fox jumps over the dog'.split(),
                  'the brown fox jumps over the lazy dog'.split(),
                  'the clever fox jumps over the lazy crow'.split()]
-    alignment = multi_sequence_alignment(sequences, gap_weight=0, gap_penalty=6)
+    alignment = multi_sequence_alignment(sequences)
     print(alignment)
     print(alignment.score())
     alignment.plot("testje.pdf")
